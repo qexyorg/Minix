@@ -13,7 +13,6 @@
             "homepage": "https://qexy.org"
         }
     ],
-    "minimum-stability": "dev",
     "require": {
         "php": "^7.3"
 	},
