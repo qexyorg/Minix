@@ -96,6 +96,8 @@ class Php implements LanguageInterface {
 
         $this->code = $this->replaceSpaces($this->code);
 
+        $this->code = "<?php {$this->code} ?>";
+        
         return $this->code;
     }
 
