@@ -24,7 +24,7 @@ use qexyorg\Minix\Types\Php;
 
 class Minix {
 
-    public static function php() : LanguageInterface {
+    public static function Php() : LanguageInterface {
         return new Php();
     }
 
