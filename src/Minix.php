@@ -24,8 +24,8 @@ use qexyorg\Minix\Types\Php;
 
 class Minix {
 
-    public static function Php() : LanguageInterface {
-        return new Php();
+    public static function Php(?string $filename = null) : LanguageInterface {
+        return new Php($filename);
     }
 
 }
