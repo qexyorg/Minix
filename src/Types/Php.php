@@ -117,7 +117,7 @@ class Php implements LanguageInterface {
 
         $symbols = str_split(addcslashes($symbols, $symbols), 2);
 
-        $code = preg_replace('/([\s\n]+)?('.$symbols.')([\s\n]+)?/isu', '$2', $code);
+        $code = preg_replace('/([\s\n]+)?('.implode('|', $symbols).')([\s\n]+)?/isu', '$2', $code);
 
         return strtr($code, $this->storage['strings']);
     }
