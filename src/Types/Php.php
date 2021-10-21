@@ -14,7 +14,7 @@
  * @license MIT
  *
  *
- * @version 1.0.0
+ * @version 1.1.0
  *
  */
 
@@ -57,71 +57,108 @@ class Php implements LanguageInterface {
     }
 
 
-    public function removeComments(bool $value) : LanguageInterface {
+    private function removeSpaces(string $str) : string {
+        $removeSpaces = ['=', '.', ',', ':', '{', '}', '[', ']', '+', '-', '!', '|', '>', '<', '(', ')', '?', ';', '$', '%', '^', '&', '*'];
 
-        $this->comments = $value;
+        foreach($removeSpaces as $symbols){
+            $quoted = preg_quote($symbols);
+            $str = preg_replace("/(\s+)?{$quoted}(\s+)?/i", $symbols, $str);
+        }
 
-        return $this;
+        return preg_replace('/\s{2,}/i', ' ', $str);
+    }
+
+
+    private function str_replace_first(string $from, string $to, string $content) : string {
+        $from = '/'.preg_quote($from, '/').'/';
+
+        return preg_replace($from, $to, $content, 1);
+    }
+
+
+    private function removeCommentary(string $str) : string {
+        $str = preg_replace('/\/\/([^\"\']+)?$/', '', $str);
+
+        return preg_replace('/\/\*(.*)?\*\//iusU', '', $str);
+    }
+
+    private function removeBorders(string $str) : string {
+        $str = preg_replace('/^\<\?php/', '', $str);
+
+        return preg_replace('/\?\>$/', '', $str);
     }
 
 
     public function minify() : string {
+        $this->code = $this->removeCommentary($this->code);
 
-        $this->code = preg_replace('/^([\s\n]+)?\<\?(php)?(.*)\?\>([\s\n]+)?$/isu', '$3', $this->code);
+        $this->code = $this->removeBorders($this->code);
 
-        $this->code = trim($this->code);
+        $split = explode(PHP_EOL, $this->code);
 
-        $this->storage['strings'] = [];
+        $keys = [];
 
-        $this->code = preg_replace_callback('/\"(.*)[^\\\]\"/U', function($matches){
-            $md5 = md5($matches[0].hrtime(true));
+        $data = [];
 
-            $this->storage['strings'][$md5] = $matches[0];
+        foreach($split as $str){
 
-            return $md5;
-        }, $this->code);
+            $str = $this->removeCommentary($str);
+
+            $str = trim($str);
+
+            if($str == ''){ continue; }
+
+            $searchQuote = strripos($str, '\'');
+            $searchDoubleQuote = strripos($str, '"');
+            $searchSleshedQuote = strripos($str, '\\\'');
+            $searchSleshedDoubleQuote = strripos($str, '\\"');
+
+            if($searchQuote !== false && ($searchDoubleQuote === false && $searchSleshedQuote === false && $searchSleshedDoubleQuote === false)){
+
+                preg_match_all('/\'([^\']+)?\'/isu', $str, $matches);
+
+                foreach($matches[0] as $string){
+                    $key = '~'.md5(mt_rand(0, 99999999)).'~';
+
+                    $keys[$key] = $string;
+
+                    $str = $this->str_replace_first($string, $key, $str);
+                }
+
+                $str = $this->removeSpaces($str);
+            }elseif($searchDoubleQuote !== false && ($searchQuote === false && $searchSleshedQuote === false && $searchSleshedDoubleQuote === false)){
+
+                preg_match_all('/\"([^\"]+)?\"/isu', $str, $matches);
+
+                foreach($matches[0] as $string){
+                    $key = '~'.md5(mt_rand(0, 99999999)).'~';
+
+                    $keys[$key] = $string;
+
+                    $str = $this->str_replace_first($string, $key, $str);
+                }
+
+                $str = $this->removeSpaces($str);
+            }elseif($searchQuote === false && $searchDoubleQuote === false){
+                $str = $this->removeSpaces($str);
+            }
+
+            $str = trim($str);
+
+            if($str == ''){ continue; }
 
 
-        $this->code = preg_replace_callback("/'(.*)[^\\\]'/U", function($matches){
-            $md5 = md5($matches[0].hrtime(true));
-
-            $this->storage['strings'][$md5] = $matches[0];
-
-            return $md5;
-        }, $this->code);
-
-        if($this->comments){
-            $this->code = $this->replaceComments($this->code);
+            $data[] = $str;
         }
 
-        $this->code = $this->replaceSpaces($this->code);
+        $this->code = implode('', $data);
 
-        $this->code = "<?php {$this->code} ?>";
-        
-        return $this->code;
+        foreach($keys as $k => $v){
+            $this->code = $this->str_replace_first($k, $v, $this->code);
+        }
+
+        return "<?php {$this->code}";
     }
-
-
-    private function replaceComments(string  $code) : string {
-        $code = preg_replace('/\/\*.*\*\//isu', '', $code);
-
-        return preg_replace('/(\/\/[^\n]+)|(\#[^\n]+)/', '', $code);
-    }
-
-
-    private function replaceSpaces(string $code) : string {
-
-        $code = preg_replace('/[\s\n]+/', ' ', $code);
-
-        $symbols = '{}|,.;/\:=()><[]+-*?&%@!';
-
-        $symbols = str_split(addcslashes($symbols, $symbols), 2);
-
-        $code = preg_replace('/([\s\n]+)?('.implode('|', $symbols).')([\s\n]+)?/isu', '$2', $code);
-
-        return strtr($code, $this->storage['strings']);
-    }
-
 }
 
 ?>

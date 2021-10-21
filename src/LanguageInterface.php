@@ -14,7 +14,7 @@
  * @license MIT
  *
  *
- * @version 1.0.0
+ * @version 1.1.0
  *
  */
 
@@ -33,9 +33,6 @@ interface LanguageInterface {
 
 
     public function file(string $filename) : self;
-
-
-    public function removeComments(bool $value) : self;
 
 
 }
