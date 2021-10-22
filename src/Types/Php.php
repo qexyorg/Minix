@@ -77,15 +77,39 @@ class Php implements LanguageInterface {
 
 
     private function removeCommentary(string $str) : string {
-        $str = preg_replace('/\/\/([^\"\']+)?$/', '', $str);
+        $newStr  = '';
 
-        return preg_replace('/\/\*(.*)?\*\//iusU', '', $str);
+        $commentTokens = array(T_COMMENT);
+
+        if (defined('T_DOC_COMMENT')) {
+            $commentTokens[] = T_DOC_COMMENT; // PHP 5
+        }
+
+        if (defined('T_ML_COMMENT')) {
+            $commentTokens[] = T_ML_COMMENT;  // PHP 4
+        }
+
+        $tokens = token_get_all($str);
+
+        foreach ($tokens as $token) {
+            if (is_array($token)) {
+                if (in_array($token[0], $commentTokens)) {
+                    continue;
+                }
+
+                $token = $token[1];
+            }
+
+            $newStr .= $token;
+        }
+
+        return $newStr;
     }
 
     private function removeBorders(string $str) : string {
-        $str = preg_replace('/^\<\?php/', '', $str);
+        $str = preg_replace('/^\<\?php/isu', '', $str);
 
-        return preg_replace('/\?\>$/', '', $str);
+        return preg_replace('/\?\>$/isu', '', $str);
     }
 
 
@@ -101,8 +125,6 @@ class Php implements LanguageInterface {
         $data = [];
 
         foreach($split as $str){
-
-            $str = $this->removeCommentary($str);
 
             $str = trim($str);
 
@@ -151,7 +173,7 @@ class Php implements LanguageInterface {
             $data[] = $str;
         }
 
-        $this->code = implode('', $data);
+        $this->code = implode(PHP_EOL, $data);
 
         foreach($keys as $k => $v){
             $this->code = $this->str_replace_first($k, $v, $this->code);
